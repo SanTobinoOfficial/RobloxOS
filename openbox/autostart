@@ -1,0 +1,32 @@
+# RobloxOS – Openbox autostart
+# Plik: ~/.config/openbox/autostart
+# Wykonywany przez Openbox przy starcie sesji (nie jest skryptem bash –
+# każda linia to polecenie uruchamiane w tle przez Openbox).
+
+# ── 1. Compositor ─────────────────────────────────────────────────────────────
+# picom: vsync + cień wyłączony, samo wygładzanie renderowania
+picom --backend glx --vsync --no-fading-openclose --no-fading-destroyed-argb \
+      --shadow=false --inactive-opacity=1.0 --daemon &
+
+# ── 2. Tapeta – czyste czarne tło, zero ikon ──────────────────────────────────
+# xsetroot zamiast feh/nitrogen – brak zależności, brak ikon pulpitu
+xsetroot -solid "#0f0f0f" &
+
+# ── 3. Wyłączenie screensavera i energy-savingu monitora ─────────────────────
+xset s off &
+xset -dpms &
+xset s noblank &
+
+# ── 4. Ukrycie kursora myszy gdy jest bezczynny (opcjonalne) ──────────────────
+# unclutter: chowa kursor po 3 sekundach bez ruchu
+unclutter -idle 3 -root &
+
+# ── 5. Launcher główny ────────────────────────────────────────────────────────
+# Uruchamiamy przez venv; RestartSec – jeśli launcher się wysypie, wróci po 2s
+(
+  while true; do
+    /home/robloxuser/launcher/venv/bin/python3 \
+      /home/robloxuser/launcher/launcher.py
+    sleep 2
+  done
+) &

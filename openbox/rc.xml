@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  RobloxOS – Openbox rc.xml
+  Plik: ~/.config/openbox/rc.xml
+  Wersja minimalistyczna: brak dekoracji, brak skrótów, brak menu.
+-->
+<openbox_config xmlns="http://openbox.org/3.4/rc"
+                xmlns:xi="http://www.w3.org/2001/XInclude">
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       1. OGÓLNE USTAWIENIA
+       ══════════════════════════════════════════════════════════════════════ -->
+  <resistance>
+    <strength>10</strength>
+    <screen_edge_strength>20</screen_edge_strength>
+  </resistance>
+
+  <focus>
+    <!-- Fokus tylko przez kliknięcie (nie hover) -->
+    <focusNew>yes</focusNew>
+    <followMouse>no</followMouse>
+    <focusLast>yes</focusLast>
+    <underMouse>no</underMouse>
+    <focusDelay>0</focusDelay>
+    <raiseOnFocus>no</raiseOnFocus>
+  </focus>
+
+  <placement>
+    <policy>Smart</policy>
+    <center>yes</center>
+    <monitor>Primary</monitor>
+  </placement>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       2. MOTYWY – zero dekoracji globalnie (aplikacje same rysują ramki)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <theme>
+    <!-- Minimalny styl; dekoracje i tak są wyłączone per-app poniżej -->
+    <name>Clearlooks</name>
+    <titleLayout>NLIMC</titleLayout>
+    <keepBorder>no</keepBorder>
+    <animateIconify>no</animateIconify>
+    <font place="ActiveWindow">
+      <name>Ubuntu</name>
+      <size>10</size>
+      <weight>Bold</weight>
+      <slant>Normal</slant>
+    </font>
+    <font place="InactiveWindow">
+      <name>Ubuntu</name>
+      <size>10</size>
+      <weight>Normal</weight>
+      <slant>Normal</slant>
+    </font>
+  </theme>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       3. DEKSTOP – jeden pulpit, zero pagerów
+       ══════════════════════════════════════════════════════════════════════ -->
+  <desktops>
+    <number>1</number>
+    <firstdesk>1</firstdesk>
+    <names>
+      <name>RobloxOS</name>
+    </names>
+    <popupTime>0</popupTime>
+  </desktops>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       4. RESIZE / MOVE
+       ══════════════════════════════════════════════════════════════════════ -->
+  <resize>
+    <drawContents>yes</drawContents>
+    <popupShow>Never</popupShow>   <!-- brak popup z rozmiarem podczas resize -->
+    <popupPosition>Center</popupPosition>
+  </resize>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       5. SKRÓTY KLAWISZOWE – WSZYSTKIE ZABLOKOWANE
+       Technika: przechwytujemy skrót i przypisujemy mu akcję <Execute>
+       z pustym poleceniem (echo), dzięki czemu Openbox "zjada" zdarzenie
+       zanim trafi do aplikacji lub systemu.
+       ══════════════════════════════════════════════════════════════════════ -->
+  <keyboard>
+    <!-- Wyłączamy domyślne chainQuit żeby Ctrl+Alt+Backspace nie zabiło X -->
+    <chainQuitKey>C-g</chainQuitKey>   <!-- przekierowane na bezpieczny klucz -->
+
+    <!-- Alt+Tab / Alt+Shift+Tab – brak przełączania okien -->
+    <keybind key="A-Tab">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+    <keybind key="A-S-Tab">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+
+    <!-- Alt+F4 – brak zamykania okien przez klawiaturę -->
+    <keybind key="A-F4">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+
+    <!-- Alt+F2 – brak "Run dialog" -->
+    <keybind key="A-F2">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+
+    <!-- Ctrl+Alt+T – brak terminala -->
+    <keybind key="C-A-t">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+
+    <!-- Ctrl+Alt+Delete -->
+    <keybind key="C-A-Delete">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+
+    <!-- Ctrl+Alt+Backspace – kill X server (zablokowane przez chroot w Xorg,
+         ale blokujemy też tutaj dla pewności) -->
+    <keybind key="C-A-BackSpace">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+
+    <!-- Super (Windows key) – brak menu, brak żadnych akcji -->
+    <keybind key="Super_L">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+    <keybind key="Super_R">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+
+    <!-- Alt+F1 – niektóre DM bindują tu menu startowe -->
+    <keybind key="A-F1">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+
+    <!-- Ctrl+Esc – brak menu Openbox -->
+    <keybind key="C-Escape">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+
+    <!-- F11 – blokujemy globalnie (launcher sam obsługuje fullscreen toggle
+         tylko podczas dewelopmentu; w produkcji usuń też obsługę z launcher.py) -->
+    <keybind key="F11">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+
+    <!-- Alt+Space – brak systemowego menu okna -->
+    <keybind key="A-space">
+      <action name="Execute"><execute>true</execute></action>
+    </keybind>
+
+  </keyboard>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       6. MYSZ – wyłączamy WSZYSTKIE menu kontekstowe
+       ══════════════════════════════════════════════════════════════════════ -->
+  <mouse>
+    <dragThreshold>1</dragThreshold>
+    <doubleClickTime>200</doubleClickTime>
+    <screenEdgeWarpTime>0</screenEdgeWarpTime>
+    <screenEdgeWarpMouse>false</screenEdgeWarpMouse>
+
+    <!-- Kontekst: pulpit (Desktop) -->
+    <context name="Desktop">
+      <!-- PPM na pulpicie – brak menu (pusta akcja) -->
+      <mousebind button="Right" action="Press">
+        <action name="Execute"><execute>true</execute></action>
+      </mousebind>
+      <!-- Środkowy przycisk – brak menu okien -->
+      <mousebind button="Middle" action="Press">
+        <action name="Execute"><execute>true</execute></action>
+      </mousebind>
+      <!-- Scroll na pulpicie – brak przełączania pulpitów -->
+      <mousebind button="Up" action="Click">
+        <action name="Execute"><execute>true</execute></action>
+      </mousebind>
+      <mousebind button="Down" action="Click">
+        <action name="Execute"><execute>true</execute></action>
+      </mousebind>
+    </context>
+
+    <!-- Kontekst: pasek tytułu – i tak go nie ma, ale dla pewności -->
+    <context name="Titlebar">
+      <mousebind button="Right" action="Press">
+        <action name="Execute"><execute>true</execute></action>
+      </mousebind>
+    </context>
+
+    <!-- Kontekst: ramka okna -->
+    <context name="Frame">
+      <mousebind button="A-Left" action="Press">
+        <action name="Focus"/>
+        <action name="Raise"/>
+      </mousebind>
+    </context>
+
+    <!-- Kliknięcie w okno = fokus + podniesienie -->
+    <context name="Client">
+      <mousebind button="Left" action="Press">
+        <action name="Focus"/>
+        <action name="Raise"/>
+      </mousebind>
+    </context>
+
+    <!-- Root window (pulpit pod aplikacjami) -->
+    <context name="Root">
+      <mousebind button="Right" action="Press">
+        <action name="Execute"><execute>true</execute></action>
+      </mousebind>
+      <mousebind button="Middle" action="Press">
+        <action name="Execute"><execute>true</execute></action>
+      </mousebind>
+    </context>
+
+  </mouse>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       7. REGUŁY OKIEN (per-application)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <applications>
+
+    <!--
+      ── Launcher RobloxOS ───────────────────────────────────────────────────
+      Identyfikacja: WM_CLASS = "launcher" (Qt ustawia je jako argv[0] bez .py)
+      Dopasowujemy po nazwie procesu.
+    -->
+    <application name="launcher" type="normal">
+      <!-- Brak dekoracji (ramki, paska tytułu) -->
+      <decor>no</decor>
+      <!-- Zawsze na wierzchu -->
+      <layer>above</layer>
+      <!-- Fullscreen od startu -->
+      <fullscreen>yes</fullscreen>
+      <!-- Nie pojawia się w taskbarze (i tak go nie ma) -->
+      <skip_taskbar>yes</skip_taskbar>
+      <skip_pager>yes</skip_pager>
+      <!-- Zawsze widoczne na wszystkich pulpitach -->
+      <desktop>all</desktop>
+      <!-- Fokus automatycznie przy starcie -->
+      <focus>yes</focus>
+    </application>
+
+    <!--
+      ── Discord (Flatpak) ───────────────────────────────────────────────────
+      WM_CLASS Flatpak Discord = "discord"
+    -->
+    <application name="discord" type="normal">
+      <decor>no</decor>
+      <layer>normal</layer>
+      <!-- Pozycję i rozmiar ustawia discord_launcher.py przez wmctrl -->
+      <skip_taskbar>yes</skip_taskbar>
+      <skip_pager>yes</skip_pager>
+    </application>
+
+    <!--
+      ── Chromium (tryb kiosk) ───────────────────────────────────────────────
+      W trybie --kiosk Chromium sam usuwa dekoracje i idzie fullscreen,
+      ale wymuszamy to też tutaj dla pewności.
+    -->
+    <application name="chromium-browser" type="normal">
+      <decor>no</decor>
+      <fullscreen>yes</fullscreen>
+      <layer>normal</layer>
+      <skip_taskbar>yes</skip_taskbar>
+      <skip_pager>yes</skip_pager>
+    </application>
+    <!-- Alternatywna nazwa procesu na niektórych dystrybucjach -->
+    <application name="chromium" type="normal">
+      <decor>no</decor>
+      <fullscreen>yes</fullscreen>
+      <layer>normal</layer>
+      <skip_taskbar>yes</skip_taskbar>
+      <skip_pager>yes</skip_pager>
+    </application>
+
+    <!--
+      ── Sober / Roblox ─────────────────────────────────────────────────────
+      Sober uruchamia się jako "sober"; właściwy klient Roblox może pojawić się
+      jako "RobloxPlayerBeta" lub "Roblox".
+    -->
+    <application name="sober" type="normal">
+      <decor>no</decor>
+      <fullscreen>yes</fullscreen>
+      <layer>normal</layer>
+      <skip_taskbar>yes</skip_taskbar>
+      <skip_pager>yes</skip_pager>
+    </application>
+    <application name="RobloxPlayerBeta" type="normal">
+      <decor>no</decor>
+      <fullscreen>yes</fullscreen>
+      <layer>normal</layer>
+      <skip_taskbar>yes</skip_taskbar>
+      <skip_pager>yes</skip_pager>
+    </application>
+
+    <!--
+      ── Blokada pozostałych okien ───────────────────────────────────────────
+      Wszelkie inne okna (np. update dialogi, polkit) pojawiają się bez
+      dekoracji i są od razu zamykane. Używamy type="*" i name="*" z
+      wyłączeniem znanych app przez osobne reguły powyżej (Openbox stosuje
+      pierwszą pasującą regułę).
+
+      UWAGA: ta reguła celowo nie zamyka okien automatycznie – Openbox nie ma
+      akcji "close on map". Zamiast tego: picom + fokus na launcher uniemożliwia
+      interakcję z nieznanymi oknami. Daemon watchdog (krok 4) będzie je zabijać.
+    -->
+    <application type="dialog">
+      <!-- Dialogi systemowe (polkit, sudo gui) – brak dekoracji, centrowane -->
+      <decor>no</decor>
+      <layer>above</layer>
+      <center>yes</center>
+    </application>
+
+  </applications>
+
+</openbox_config>

@@ -1,0 +1,59 @@
+# /etc/sudoers.d/robloxuser
+# RobloxOS – polityka sudo dla użytkownika robloxuser
+#
+# UWAGA: Ten plik musi mieć chmod 440 i należeć do root:root.
+#        Błędna składnia blokuje CAŁY sudo na systemie – zawsze
+#        waliduj przez: visudo -cf /etc/sudoers.d/robloxuser
+#
+# Instalacja: cp robloxuser /etc/sudoers.d/robloxuser
+#             chmod 440 /etc/sudoers.d/robloxuser
+#             chown root:root /etc/sudoers.d/robloxuser
+
+# ── 1. Definicja grupy użytkowników objętych tą polityką ─────────────────────
+# Grupa "robloxusers" zbiera wszystkich użytkowników konsoli gamingowej.
+# Przypisanie: usermod -aG robloxusers robloxuser  (NIE wykonujemy tego tutaj)
+User_Alias CONSOLE_USERS = robloxuser
+
+# ── 2. Całkowity zakaz sudo ───────────────────────────────────────────────────
+# Operator "!" przed ALL oznacza explicit deny – wyższy priorytet niż
+# ewentualne wpisy z /etc/sudoers (Defaults includedir /etc/sudoers.d).
+CONSOLE_USERS ALL = (ALL:ALL) !ALL
+
+# ── 3. Zakaz su (przełączania na innego usera przez su) ──────────────────────
+# su używa PAM; ten wpis blokuje sudo su jako dodatkową warstwę.
+CONSOLE_USERS ALL = (ALL:ALL) !/bin/su
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/bin/su
+
+# ── 4. Zakaz uruchamiania powłok przez sudo ───────────────────────────────────
+# Uniemożliwia ucieczki typu: sudo bash, sudo sh, sudo python3
+CONSOLE_USERS ALL = (ALL:ALL) !/bin/bash
+CONSOLE_USERS ALL = (ALL:ALL) !/bin/sh
+CONSOLE_USERS ALL = (ALL:ALL) !/bin/zsh
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/bin/python3
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/bin/python
+
+# ── 5. Zakaz menedżerów pakietów ─────────────────────────────────────────────
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/bin/apt
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/bin/apt-get
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/bin/dpkg
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/bin/snap
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/bin/flatpak
+
+# ── 6. Zakaz narzędzi sieciowych i administracyjnych ─────────────────────────
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/sbin/visudo
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/bin/passwd
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/sbin/useradd
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/sbin/usermod
+CONSOLE_USERS ALL = (ALL:ALL) !/usr/sbin/groupadd
+
+# ── 7. Jedyny wyjątek: restart systemu ───────────────────────────────────────
+# Opcjonalne – pozwala robloxuserowi zrestartować konsolę bez hasła roota.
+# Odkomentuj jeśli chcesz mieć przycisk "Restart" w launcherze.
+# CONSOLE_USERS ALL = (root) NOPASSWD: /usr/sbin/reboot
+# CONSOLE_USERS ALL = (root) NOPASSWD: /usr/sbin/poweroff
+
+# ── 8. Globalny timeout ───────────────────────────────────────────────────────
+# Nawet jeśli kiedyś coś przeoczymy, token sudo wygasa natychmiast.
+Defaults:CONSOLE_USERS timestamp_timeout=0
+Defaults:CONSOLE_USERS !authenticate
+Defaults:CONSOLE_USERS !env_reset

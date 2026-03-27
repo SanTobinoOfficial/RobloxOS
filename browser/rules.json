@@ -1,0 +1,142 @@
+[
+  {
+    "_comment": "════════════════════════════════════════════════════════════════",
+    "_comment": " LOGIKA PRIORYTETÓW:                                           ",
+    "_comment": "   priority 10 = ALLOW  (whitelist – wygrywa nad blokiem)     ",
+    "_comment": "   priority  1 = BLOCK  (catch-all – najniższy priorytet)     ",
+    "_comment": " declarativeNetRequest: wyższy numer = wyższy priorytet.      ",
+    "_comment": "════════════════════════════════════════════════════════════════"
+  },
+
+  {
+    "_comment": "── Roblox ───────────────────────────────────────────────────────",
+    "_comment": "requestDomains automatycznie obejmuje wszystkie subdomeny."
+  },
+  {
+    "id": 1,
+    "priority": 10,
+    "action": { "type": "allow" },
+    "condition": {
+      "requestDomains": ["roblox.com"],
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  },
+
+  {
+    "_comment": "── Discord ──────────────────────────────────────────────────────"
+  },
+  {
+    "id": 2,
+    "priority": 10,
+    "action": { "type": "allow" },
+    "condition": {
+      "requestDomains": ["discord.com"],
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  },
+  {
+    "_comment": "CDN i assets Discorda (np. cdn.discordapp.com, media.discordapp.net)"
+  },
+  {
+    "id": 3,
+    "priority": 10,
+    "action": { "type": "allow" },
+    "condition": {
+      "requestDomains": ["discordapp.com", "discordapp.net"],
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  },
+
+  {
+    "_comment": "── YouTube ──────────────────────────────────────────────────────"
+  },
+  {
+    "id": 4,
+    "priority": 10,
+    "action": { "type": "allow" },
+    "condition": {
+      "requestDomains": ["youtube.com"],
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  },
+  {
+    "_comment": "Embedy YouTube i thumbnails (youtu.be, ytimg.com, yt3.ggpht.com)"
+  },
+  {
+    "id": 5,
+    "priority": 10,
+    "action": { "type": "allow" },
+    "condition": {
+      "requestDomains": ["youtu.be", "ytimg.com", "yt3.ggpht.com", "googlevideo.com"],
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  },
+
+  {
+    "_comment": "── Google – TYLKO wyszukiwarka ──────────────────────────────────",
+    "_comment": "Zamiast requestDomains (które łapie WSZYSTKIE subdomeny google.com,",
+    "_comment": "czyli też mail, drive, itp.) używamy regexFilter – tylko",
+    "_comment": "google.com i www.google.com, bez żadnych innych subdomen."
+  },
+  {
+    "id": 6,
+    "priority": 10,
+    "action": { "type": "allow" },
+    "condition": {
+      "regexFilter": "^https?://(www\\.)?google\\.com(/.*)?$",
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  },
+  {
+    "_comment": "googleapis.com potrzebne do reCAPTCHA na Roblox/Discord"
+  },
+  {
+    "id": 7,
+    "priority": 10,
+    "action": { "type": "allow" },
+    "condition": {
+      "requestDomains": ["googleapis.com", "gstatic.com"],
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  },
+
+  {
+    "_comment": "── Zasoby wewnętrzne Chrome / lokalne ───────────────────────────",
+    "_comment": "chrome://, chrome-extension://, about: muszą być wolne –",
+    "_comment": "declarativeNetRequest nie blokuje chrome:// z natury, ale",
+    "_comment": "dla pewności przepuszczamy localhost i 127.0.0.1."
+  },
+  {
+    "id": 8,
+    "priority": 10,
+    "action": { "type": "allow" },
+    "condition": {
+      "regexFilter": "^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?(/.*)?$",
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  },
+
+  {
+    "_comment": "── CATCH-ALL: blokuj wszystko inne ──────────────────────────────",
+    "_comment": "priority=1 – najniższy, zawsze przegrywa z regułami ALLOW.",
+    "_comment": "Redirect na blocked.html zamiast twardego bloku (error page),",
+    "_comment": "żeby użytkownik widział czytelny komunikat.",
+    "_comment": "UWAGA: blokujemy tylko main_frame i sub_frame (nawigacja).",
+    "_comment": "Sub-zasoby (CDN, fonty, XHR) whitelistowanych stron działają",
+    "_comment": "normalnie – blokowanie ich by-type psuje layout stron."
+  },
+  {
+    "id": 999,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/blocked.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://.*",
+      "resourceTypes": ["main_frame"]
+    }
+  }
+]

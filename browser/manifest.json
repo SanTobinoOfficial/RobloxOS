@@ -1,0 +1,42 @@
+{
+  "_comment": "RobloxOS Guard – Chromium Extension, Manifest V3",
+
+  "manifest_version": 3,
+  "name": "RobloxOS Guard",
+  "version": "1.0.0",
+  "description": "Blokuje wszystkie strony spoza whitelisty. Tylko do użytku wewnętrznego RobloxOS.",
+
+  "permissions": [
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "storage",
+    "tabs"
+  ],
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "whitelist_ruleset",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+
+  "web_accessible_resources": [
+    {
+      "_comment": "blocked.html musi być dostępne jako cel redirecta z declarativeNetRequest",
+      "resources": ["blocked.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
+  }
+}

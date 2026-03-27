@@ -1,0 +1,134 @@
+# /etc/apparmor.d/robloxos.launcher
+# RobloxOS – profil AppArmor dla launcher.py (uruchamiany przez Python 3)
+#
+# Tryb: enforce (aa-enforce /etc/apparmor.d/robloxos.launcher)
+# Testowanie: aa-complain /etc/apparmor.d/robloxos.launcher
+# Logi naruszeń: journalctl -f | grep apparmor
+# Weryfikacja: apparmor_parser -p /etc/apparmor.d/robloxos.launcher
+
+# Profil jest dołączany do procesu python3 uruchamiającego launcher.py.
+# Zmienna @{LAUNCHER_DIR} upraszcza ścieżki.
+
+@{LAUNCHER_DIR}  = /home/robloxuser/launcher
+@{LAUNCHER_VENV} = /home/robloxuser/launcher/venv
+@{USER_HOME}     = /home/robloxuser
+
+# Profil jest przypięty do konkretnej komendy startowej z autostart.
+# Jeśli zmienisz ścieżkę venv – zaktualizuj też tutaj.
+profile robloxos_launcher /usr/bin/python3 {
+
+  # ── Flagi profilowe ────────────────────────────────────────────────────────
+  flags=(attach_disconnected mediate_deleted)
+
+  # ── Dołącz bazowe abstrakcje ──────────────────────────────────────────────
+  #include <abstractions/base>
+  #include <abstractions/python>
+  #include <abstractions/X>
+  #include <abstractions/fonts>
+  #include <abstractions/nameservice>
+
+  # ── Możliwości jądra (capabilities) ──────────────────────────────────────
+  # Brak! Launcher nie potrzebuje żadnych uprawnień root-level.
+
+  # ── Sygnały: może wysyłać SIGTERM/SIGKILL tylko do własnych dzieci ────────
+  signal (send) set=(term, kill, hup) peer=robloxos_launcher,
+
+  # ── Pliki binarne i biblioteki systemu (read-only) ───────────────────────
+  /usr/bin/python3*            mr,
+  /usr/lib/python3/**          mr,
+  /usr/lib/python3*/**         mr,
+  /usr/local/lib/python3*/**   mr,
+
+  # ── Środowisko wirtualne (venv) – read/exec ──────────────────────────────
+  @{LAUNCHER_VENV}/            r,
+  @{LAUNCHER_VENV}/**          mr,
+  @{LAUNCHER_VENV}/bin/python3 ix,   # ix = inherit profile, exec
+
+  # ── Katalog launchera – odczyt plików źródłowych ─────────────────────────
+  @{LAUNCHER_DIR}/             r,
+  @{LAUNCHER_DIR}/**           r,
+
+  # ── Qt / PyQt6 wymagają dostępu do zasobów systemowych ───────────────────
+  /usr/lib/x86_64-linux-gnu/qt6/**        mr,
+  /usr/lib/x86_64-linux-gnu/libQt6*.so*   mr,
+  /usr/share/qt6/**                       r,
+  /usr/share/fonts/**                     r,
+  /usr/share/icons/**                     r,
+  /etc/fonts/**                           r,
+  /var/cache/fontconfig/**                rw,
+  @{USER_HOME}/.config/fontconfig/**      rw,
+
+  # ── X11 i sesja graficzna ─────────────────────────────────────────────────
+  /tmp/.X*                     rw,
+  /tmp/.X11-unix/**            rw,
+  @{USER_HOME}/.Xauthority     r,
+  /run/user/@{uid}/             r,
+
+  # ── Procesy potomne: co launcher może uruchomić ───────────────────────────
+  # Sober (Roblox wrapper) – Cx = child exec, bez dziedziczenia profilu
+  /usr/bin/sober               Cx -> robloxos_child_unconfined,
+  /home/robloxuser/.var/app/com.sober.Sober/** Cx -> robloxos_child_unconfined,
+
+  # Discord launcher (python3 + discord_launcher.py)
+  @{LAUNCHER_DIR}/discord_launcher.py     r,
+  /usr/bin/python3             Cx -> robloxos_launcher,
+
+  # Chromium
+  /usr/bin/chromium-browser    Cx -> robloxos_child_unconfined,
+  /usr/bin/chromium            Cx -> robloxos_child_unconfined,
+
+  # wmctrl (pozycjonowanie okna Discorda)
+  /usr/bin/wmctrl              Cx -> robloxos_child_unconfined,
+
+  # xrandr (detekcja monitora)
+  /usr/bin/xrandr              Cx -> robloxos_child_unconfined,
+
+  # ── EXPLICIT DENY: powłoki i narzędzia niebezpieczne ─────────────────────
+  deny /bin/bash               x,
+  deny /bin/sh                 x,
+  deny /bin/zsh                x,
+  deny /usr/bin/bash           x,
+  deny /usr/bin/sh             x,
+  deny /usr/bin/zsh            x,
+  deny /usr/bin/apt            x,
+  deny /usr/bin/apt-get        x,
+  deny /usr/bin/dpkg           x,
+  deny /usr/bin/snap           x,
+  deny /usr/bin/flatpak        x,
+  deny /usr/bin/sudo           x,
+  deny /usr/bin/su             x,
+
+  # ── EXPLICIT DENY: katalogi systemowe poza tym co potrzebne ──────────────
+  deny /etc/passwd             rw,
+  deny /etc/shadow             rw,
+  deny /etc/sudoers            rw,
+  deny /etc/sudoers.d/**       rw,
+  deny /root/**                rw,
+
+  # ── IPC / sieć – tylko localhost (sygnały Qt między procesami) ───────────
+  network inet  stream,    # tcp localhost dla Qt IPC
+  network inet6 stream,
+  deny network inet  dgram,
+  deny network inet6 dgram,
+
+  # ── /proc – minimalny dostęp ─────────────────────────────────────────────
+  @{PROC}/@{pid}/fd/          r,
+  @{PROC}/@{pid}/maps         r,
+  @{PROC}/@{pid}/status       r,
+  @{PROC}/sys/kernel/random/uuid r,
+
+  # ── /dev – tylko dźwięk i DRI (GPU acceleration Qt) ─────────────────────
+  /dev/dri/**                  rw,
+  /dev/shm/**                  rw,
+  /dev/null                    rw,
+  /dev/urandom                 r,
+  /dev/random                  r,
+
+  # ── Profile potomne ───────────────────────────────────────────────────────
+  # Procesy uruchomione przez launcher działają bez ograniczeń AppArmor
+  # (mają własne profile: robloxos.chromium).
+  profile robloxos_child_unconfined flags=(attach_disconnected) {
+    #include <abstractions/base>
+    /** mrwklix,    # pełny dostęp – Chromium i Sober same zarządzają sandboxem
+  }
+}

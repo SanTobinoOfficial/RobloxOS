@@ -1,0 +1,117 @@
+# /etc/apparmor.d/robloxos.chromium
+# RobloxOS – profil AppArmor dla Chromium (tryb kiosk)
+#
+# Tryb: enforce
+# Chromium ma wbudowany własny sandbox (seccomp + namespace), więc
+# ten profil jest drugą warstwą – ogranicza dostęp do systemu plików
+# na poziomie AppArmor zanim sandbox Chromium w ogóle się uruchomi.
+#
+# Oparty na Ubuntu upstream chromium AppArmor profile, mocno przycięty.
+# Źródło referencyjne: /etc/apparmor.d/usr.bin.chromium-browser (Ubuntu)
+
+@{CHROMIUM_PROFILE} = /home/robloxuser/.chromium-robloxos
+@{EXTENSION_DIR}    = /home/robloxuser/browser
+@{USER_HOME}        = /home/robloxuser
+
+profile robloxos_chromium /usr/bin/chromium-browser {
+
+  flags=(attach_disconnected mediate_deleted)
+
+  #include <abstractions/base>
+  #include <abstractions/fonts>
+  #include <abstractions/nameservice>
+  #include <abstractions/ssl_certs>
+
+  # ── Capabilities ──────────────────────────────────────────────────────────
+  capability sys_admin,      # wymagane przez sandbox Chromium (namespace)
+  capability sys_chroot,     # sandbox
+  capability net_bind_service,
+
+  # ── Binaria Chromium ──────────────────────────────────────────────────────
+  /usr/bin/chromium-browser         mr,
+  /usr/bin/chromium                 mr,
+  /usr/lib/chromium/**              mr,
+  /usr/lib/chromium/chromium        ix,
+  /usr/lib/chromium/chrome-sandbox  ix,
+  /usr/share/chromium/**            r,
+
+  # ── Profil użytkownika (pełny odczyt/zapis) ───────────────────────────────
+  @{CHROMIUM_PROFILE}/              rw,
+  @{CHROMIUM_PROFILE}/**            rw,
+
+  # ── Extension RobloxOS Guard (read-only!) ─────────────────────────────────
+  @{EXTENSION_DIR}/                 r,
+  @{EXTENSION_DIR}/**               r,
+
+  # ── Zasoby systemowe ──────────────────────────────────────────────────────
+  /etc/chromium/**                  r,
+  /etc/chromium-browser/**          r,
+  /usr/share/fonts/**               r,
+  /usr/share/icons/**               r,
+  /usr/share/ca-certificates/**     r,
+  /etc/ssl/certs/**                 r,
+  /etc/fonts/**                     r,
+  /var/cache/fontconfig/**          rw,
+
+  # ── X11 ───────────────────────────────────────────────────────────────────
+  /tmp/.X*                          rw,
+  /tmp/.X11-unix/**                 rw,
+  @{USER_HOME}/.Xauthority          r,
+
+  # ── /dev ──────────────────────────────────────────────────────────────────
+  /dev/dri/**                       rw,
+  /dev/shm/**                       rw,
+  /dev/null                         rw,
+  /dev/urandom                      r,
+  /dev/random                       r,
+  /dev/video*                       rw,    # kamera (jeśli jest)
+  /dev/snd/**                       rw,    # audio
+
+  # ── /proc ─────────────────────────────────────────────────────────────────
+  @{PROC}/                          r,
+  @{PROC}/@{pid}/fd/                r,
+  @{PROC}/@{pid}/oom_{,score_}adj   rw,
+  @{PROC}/@{pid}/maps               r,
+  @{PROC}/@{pid}/status             r,
+  @{PROC}/@{pid}/smaps              r,
+  @{PROC}/sys/kernel/shmmax         r,
+  @{PROC}/sys/kernel/random/uuid    r,
+
+  # ── /run ──────────────────────────────────────────────────────────────────
+  /run/user/@{uid}/                 rw,
+  /run/shm/**                       rw,
+
+  # ── Sieć – pełny dostęp (Chromium wymaga internetu) ──────────────────────
+  network inet  stream,
+  network inet6 stream,
+  network inet  dgram,
+  network inet6 dgram,
+  network netlink raw,   # wymagane przez sandbox Chromium
+
+  # ── EXPLICIT DENY: katalogi systemowe ─────────────────────────────────────
+  deny /etc/passwd              rw,
+  deny /etc/shadow              rw,
+  deny /etc/sudoers             rw,
+  deny /etc/sudoers.d/**        rw,
+  deny /root/**                 rw,
+  deny /home/*/.ssh/**          rw,
+
+  # ── EXPLICIT DENY: exec CZEGOKOLWIEK poza Chromium ────────────────────────
+  # Chromium sam zarządza swoimi procesami (renderer, GPU, etc.) przez
+  # wbudowany sandbox. Blokujemy exec zewnętrznych programów.
+  deny /bin/bash                x,
+  deny /bin/sh                  x,
+  deny /usr/bin/bash            x,
+  deny /usr/bin/xterm           x,
+  deny /usr/bin/gnome-terminal  x,
+  deny /usr/bin/apt             x,
+  deny /usr/bin/apt-get         x,
+  deny /usr/bin/sudo            x,
+
+  # ── Procesy potomne Chromium (renderer, GPU, etc.) ────────────────────────
+  # Chromium uruchamia się wieloprocesowo; potomne procesy dziedziczą profil.
+  /usr/lib/chromium/chromium    ix,
+
+  # Zezwól na /tmp dla Chromium sandbox IPC
+  /tmp/**                       rw,
+}

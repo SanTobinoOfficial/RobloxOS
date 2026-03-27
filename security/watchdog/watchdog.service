@@ -1,0 +1,71 @@
+# /etc/systemd/system/robloxos-watchdog.service
+# RobloxOS – Watchdog daemon (systemd unit)
+#
+# Instalacja:
+#   cp watchdog.service /etc/systemd/system/robloxos-watchdog.service
+#   systemctl daemon-reload
+#   systemctl enable --now robloxos-watchdog
+#
+# Logi:
+#   journalctl -u robloxos-watchdog -f
+#   tail -f /var/log/robloxos-watchdog.log
+
+[Unit]
+Description=RobloxOS Security Watchdog
+Documentation=file:///opt/robloxos/README.md
+# Startuj po tym jak system jest w pełni uruchomiony i sieć gotowa
+After=multi-user.target network.target
+# Watchdog jest krytyczny – jest częścią grupy graficznej sesji
+Wants=graphical.target
+
+[Service]
+Type=simple
+
+# ── Uruchom jako root (potrzebuje uprawnień do SIGKILL procesów usera) ────────
+User=root
+Group=root
+
+# ── Komenda startowa ──────────────────────────────────────────────────────────
+ExecStart=/usr/bin/python3 /opt/robloxos/watchdog.py
+
+# ── Polityka restartowania – ZAWSZE wracaj ────────────────────────────────────
+Restart=always
+RestartSec=3s
+# StartLimitIntervalSec=0 wyłącza limit restartów (domyślnie 5 w 10s)
+StartLimitIntervalSec=0
+
+# ── Środowisko ────────────────────────────────────────────────────────────────
+Environment=PYTHONUNBUFFERED=1
+
+# ── Bezpieczeństwo samego watchdoga ──────────────────────────────────────────
+# Zabezpieczamy PROCES watchdoga przed ingerencją usera.
+# Paradoks: watchdog musi mieć uprawnienia root, ale ograniczamy jego
+# możliwości do absolutnego minimum potrzebnego do działania.
+
+# Brak dostępu do sieci (watchdog nie potrzebuje internetu)
+IPAddressDeny=any
+# Brak możliwości ładowania modułów jądra
+CapabilityBoundingSet=CAP_KILL CAP_SYS_PTRACE
+# Brak nowych uprawnień przez execve
+NoNewPrivileges=no   # musimy mieć no=no bo działamy jako root i potrzebujemy kill
+# Tylko odczyt systemu plików (z wyjątkiem logów i /proc)
+ProtectSystem=strict
+ReadWritePaths=/var/log /opt/robloxos
+ProtectHome=read-only
+ReadOnlyPaths=/home/robloxuser
+# Brak dostępu do /dev poza podstawowymi
+PrivateDevices=yes
+# Izolacja /tmp
+PrivateTmp=yes
+# Blokada zmiany hostname, czasu systemowego
+ProtectHostname=yes
+ProtectClock=yes
+# Blokada kluczy jądra
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+# Blokada kontroli cgroup (niewidoczne dla watchdoga)
+ProtectControlGroups=yes
+
+[Install]
+WantedBy=multi-user.target

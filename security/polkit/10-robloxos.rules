@@ -1,0 +1,71 @@
+/* /etc/polkit-1/rules.d/10-robloxos.rules
+ * RobloxOS – blokada eskalacji uprawnień przez polkit
+ *
+ * polkit wykonuje te reguły jako JavaScript (SpiderMonkey).
+ * Plik musi należeć do root:root i mieć chmod 644.
+ *
+ * Priorytet: pliki numerowane niżej (10-*) są wczytywane wcześniej
+ * i mają wyższy priorytet. "10" gwarantuje że nasza reguła wyprzedza
+ * domyślne reguły Ubuntu (50-*).
+ *
+ * Weryfikacja: pkaction --verbose | grep -i roblox
+ * Logi: journalctl -f _COMM=polkit
+ */
+
+polkit.addRule(function(action, subject) {
+
+    // ── Dotyczy tylko użytkownika robloxuser ─────────────────────────────
+    if (subject.user !== "robloxuser") {
+        return polkit.Result.NOT_HANDLED;  // inne reguły decydują dla reszty
+    }
+
+    // ── Loguj każdą próbę autoryzacji ────────────────────────────────────
+    polkit.log(
+        "RobloxOS Guard: robloxuser próbuje akcji '" + action.id +
+        "' – automatyczne DENY"
+    );
+
+    // ── Blokada wszystkich akcji freedesktop ─────────────────────────────
+    // org.freedesktop.* obejmuje: NetworkManager, udisks (montowanie),
+    // UPower, locale, timedate, hostname, login (systemd-logind) itd.
+    if (action.id.indexOf("org.freedesktop.") === 0) {
+        return polkit.Result.AUTH_ADMIN;  // wymaga hasła roota – robloxuser go nie zna
+    }
+
+    // ── Blokada akcji Ubuntu-specific ────────────────────────────────────
+    // com.ubuntu.* obejmuje: software-center, update-manager, language-selector
+    if (action.id.indexOf("com.ubuntu.") === 0) {
+        return polkit.Result.AUTH_ADMIN;
+    }
+
+    // ── Blokada Snap ─────────────────────────────────────────────────────
+    if (action.id.indexOf("io.snapcraft.") === 0) {
+        return polkit.Result.AUTH_ADMIN;
+    }
+
+    // ── Blokada PackageKit (instalacja pakietów przez GUI) ───────────────
+    if (action.id.indexOf("org.debian.apt.") === 0 ||
+        action.id.indexOf("com.ubuntu.pkexec.") === 0) {
+        return polkit.Result.AUTH_ADMIN;
+    }
+
+    // ── Blokada montowania dysków ─────────────────────────────────────────
+    // udisks2 pozwala montować nośniki USB – blokujemy
+    if (action.id.indexOf("org.freedesktop.udisks2.") === 0) {
+        return polkit.Result.AUTH_ADMIN;
+    }
+
+    // ── Blokada zmiany sieci (NetworkManager) ─────────────────────────────
+    if (action.id.indexOf("org.freedesktop.NetworkManager.") === 0) {
+        return polkit.Result.AUTH_ADMIN;
+    }
+
+    // ── Blokada systemd units przez użytkownika ───────────────────────────
+    if (action.id.indexOf("org.freedesktop.systemd1.") === 0) {
+        return polkit.Result.AUTH_ADMIN;
+    }
+
+    // ── Catch-all: WSZYSTKO inne też wymaga hasła roota ───────────────────
+    // Bezpieczny domyślny – żadna akcja nie przechodzi bez hasła.
+    return polkit.Result.AUTH_ADMIN;
+});

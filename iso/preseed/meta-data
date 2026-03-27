@@ -1,0 +1,3 @@
+# Plik wymagany przez Subiquity / cloud-init nocloud datasource.
+# Może być pusty lub zawierać instance-id.
+instance-id: robloxos-install-v1
