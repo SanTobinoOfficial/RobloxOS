@@ -1,0 +1,133 @@
+# RobloxOS – Sway config (Wayland)
+# Plik: ~/.config/sway/config
+# Fallback X11: openbox (katalog openbox/ w projekcie)
+#
+# Wymagania: sway, wlr-randr, swaymsg, foot (opcjonalny terminal dla admina)
+# Instalacja: apt install sway wlr-randr
+
+# ── Zmienne ───────────────────────────────────────────────────────────────────
+set $launcher /home/robloxuser/launcher/venv/bin/python3 \
+              /home/robloxuser/launcher/launcher.py
+set $mod      Mod4
+
+# ── Wyjście (output) ──────────────────────────────────────────────────────────
+# Ustaw tło – czysta czerń, zero tapet
+output * bg #0f0f0f solid_color
+# Wyłącz screensaver
+output * dpms off
+
+# ── Wejście (input) ───────────────────────────────────────────────────────────
+input type:keyboard {
+    xkb_layout pl
+    xkb_variant ""
+    repeat_delay 300
+    repeat_rate 30
+}
+input type:pointer {
+    accel_profile flat
+}
+
+# ── Menedżer okien ────────────────────────────────────────────────────────────
+# Brak dekoracji (tytułbary, ramki)
+default_border none
+default_floating_border none
+hide_edge_borders both
+gaps inner 0
+gaps outer 0
+
+# Fokus przez kliknięcie, nie hover
+focus_follows_mouse no
+
+# ── Reguły okien ─────────────────────────────────────────────────────────────
+
+# Launcher – fullscreen, zawsze na wierzchu
+for_window [app_id="launcher"] {
+    fullscreen enable
+    floating disable
+}
+
+# Discord – floating (pozycjonowanie przez discord_launcher.py)
+for_window [app_id="discord"] {
+    floating enable
+    border none
+}
+
+# Chromium – fullscreen
+for_window [app_id="chromium"] {
+    fullscreen enable
+    border none
+}
+for_window [app_id="chromium-browser"] {
+    fullscreen enable
+    border none
+}
+
+# Sober / Roblox
+for_window [app_id="sober"] {
+    fullscreen enable
+    border none
+}
+
+# ── BLOKADA SKRÓTÓW ───────────────────────────────────────────────────────────
+# Sway nie ma mechanizmu "zablokuj wszystko" jak Openbox,
+# więc jawnie UNBOUND wszystkie niebezpieczne kombinacje.
+
+# Zablokuj Alt+Tab (nie ma domyślnego bindingu w sway – puste exec)
+bindsym alt+Tab exec true
+bindsym alt+shift+Tab exec true
+
+# Zablokuj Mod4 (Super) – domyślne bindingi sway'a usuwamy
+unbind $mod+Return
+unbind $mod+Shift+q
+unbind $mod+Shift+e
+unbind $mod+d
+unbind $mod+h
+unbind $mod+j
+unbind $mod+k
+unbind $mod+l
+
+# Zablokuj Ctrl+Alt+T (terminal)
+bindsym ctrl+alt+t exec true
+# Zablokuj Ctrl+Alt+Delete
+bindsym ctrl+alt+Delete exec true
+# Zablokuj Ctrl+Alt+Backspace (restart sway)
+bindsym ctrl+alt+BackSpace exec true
+
+# Wyłącz klawisz blokady ekranu
+bindsym $mod+l exec true
+bindsym XF86ScreenSaver exec true
+
+# ── TYLKO DOZWOLONE AKCJE ─────────────────────────────────────────────────────
+# F11 w trybie deweloperskim (usuń w produkcji)
+# bindsym F11 fullscreen toggle
+
+# Ctrl+Shift+S = overlay statystyk
+bindsym ctrl+shift+s exec /home/robloxuser/launcher/venv/bin/python3 \
+    /opt/robloxos/overlay/stats_overlay.py
+
+# ── Autostart ─────────────────────────────────────────────────────────────────
+
+# Wyciszenie screensavera i DPMS
+exec swayidle -w \
+    timeout 600 'swaymsg "output * dpms off"' \
+    resume 'swaymsg "output * dpms on"'
+
+# Compositor efektów (opcjonalny – sway ma własny)
+# exec swayfx ...  # jeśli używasz SwayFX
+
+# Cursor – ukryj gdy nieaktywny
+exec_always sway-idle-inhibit || true
+
+# Launcher – pętla restartująca przy crashu
+exec_always bash -c 'while true; do $launcher; sleep 2; done'
+
+# Overlay statystyk (opcjonalny, startuje zminimalizowany)
+# exec /home/robloxuser/launcher/venv/bin/python3 /opt/robloxos/overlay/stats_overlay.py
+
+# ── XWayland ──────────────────────────────────────────────────────────────────
+# Włącz XWayland dla aplikacji X11 (Sober może go wymagać)
+xwayland enable
+
+# ── Workspace ─────────────────────────────────────────────────────────────────
+# Jeden workspace – brak możliwości przełączania
+workspace 1

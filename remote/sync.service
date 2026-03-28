@@ -1,0 +1,33 @@
+# /etc/systemd/system/robloxos-sync.service
+# Skopiuj plik: sudo cp remote/sync.service /etc/systemd/system/
+# Aktywuj:      sudo systemctl enable --now robloxos-sync
+#
+# Instalacja automatyczna: sudo bash remote/setup_replit_sync.sh
+
+[Unit]
+Description=RobloxOS – synchronizacja danych z panelem Replit
+Documentation=https://github.com/SanTobinoOfficial/RobloxOS
+After=network-online.target robloxos-watchdog.service
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /home/robloxuser/launcher/sync_to_replit.py
+Restart=on-failure
+RestartSec=15s
+
+# Logi rotowane przez RotatingFileHandler w skrypcie
+StandardOutput=append:/var/log/robloxos-sync.log
+StandardError=append:/var/log/robloxos-sync.log
+Environment=PYTHONUNBUFFERED=1
+
+# Łagodne ustawienia – restart przy błędach sieci, nie przy SIGTERM
+TimeoutStartSec=30
+TimeoutStopSec=10
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

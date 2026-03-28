@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Whitelist – RobloxOS{% endblock %}
+{% block page_title %}Whitelist stron{% endblock %}
+
+{% block content %}
+
+{% if msg %}
+<div class="alert {% if 'Błąd' in msg %}alert-error{% else %}alert-success{% endif %}">
+  {{ msg }}
+</div>
+{% endif %}
+
+<div class="grid grid-2">
+
+  <!-- Add domain -->
+  <div class="card">
+    <div class="card-title">Dodaj domenę</div>
+    <form method="POST">
+      <input type="hidden" name="action" value="add">
+      <div class="form-group">
+        <label for="domain">Adres domeny</label>
+        <input type="text" id="domain" name="domain"
+               placeholder="np. wikipedia.org"
+               pattern="[a-zA-Z0-9._\-]+" title="Tylko nazwa domeny, bez http://"/>
+      </div>
+      <p style="font-size:12px; color:var(--text-dim); margin-bottom:16px;">
+        Wpisz samą nazwę domeny (np. <code>wikipedia.org</code>).
+        Subdomeny (np. <code>en.wikipedia.org</code>) są automatycznie dozwolone.
+      </p>
+      <button type="submit" class="btn btn-primary">+ Dodaj domenę</button>
+    </form>
+  </div>
+
+  <!-- Info -->
+  <div class="card">
+    <div class="card-title">Jak działa whitelist</div>
+    <ul style="font-size:13px; color:var(--text-dim); line-height:2; padding-left:16px;">
+      <li>Tylko domeny z tej listy są dostępne w przeglądarce</li>
+      <li>Każda inna strona → strona "Brak dostępu"</li>
+      <li>Subdomeny są automatycznie dozwolone (np. <code>sub.roblox.com</code>)</li>
+      <li>Zmiany wchodzą w życie natychmiast (bez restartu)</li>
+      <li>Plik <code>/home/robloxuser/browser/rules.json</code> jest aktualizowany automatycznie</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- Current whitelist -->
+<div class="card">
+  <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+    <span>Aktualna whitelist ({{ cfg.whitelist | length }} domen)</span>
+    <a href="/api/whitelist/export" class="btn btn-ghost btn-sm" target="_blank">
+      ↓ Eksportuj JSON
+    </a>
+  </div>
+
+  <div style="margin-bottom:12px;">
+    <input type="text" id="search" placeholder="Filtruj domeny..."
+           oninput="filterDomains(this.value)"
+           style="width:280px; margin-bottom:0;">
+  </div>
+
+  <table id="whitelist-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Domena</th>
+        <th>Subdomeny</th>
+        <th>Akcja</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set protected = ['roblox.com','discord.com','discordapp.com','youtube.com',
+                          'googleapis.com','gstatic.com'] %}
+      {% for domain in cfg.whitelist | sort %}
+      <tr>
+        <td style="color:var(--text-dim); font-size:12px;">{{ loop.index }}</td>
+        <td>
+          <code style="font-size:13px;">{{ domain }}</code>
+          {% if domain in protected %}
+            <span class="badge badge-blue" style="margin-left:8px; font-size:10px;">wymagana</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px; color:var(--text-dim);">*.{{ domain }}</td>
+        <td>
+          {% if domain not in protected %}
+          <form method="POST" style="display:inline;"
+                onsubmit="return confirm('Usunąć {{ domain }}?')">
+            <input type="hidden" name="action" value="remove">
+            <input type="hidden" name="domain" value="{{ domain }}">
+            <button type="submit" class="btn btn-danger btn-sm">Usuń</button>
+          </form>
+          {% else %}
+          <span style="font-size:12px; color:var(--text-dim);">chroniona</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterDomains(q) {
+  const rows = document.querySelectorAll('#whitelist-table tbody tr');
+  q = q.toLowerCase();
+  rows.forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

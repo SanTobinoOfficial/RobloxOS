@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Logi – RobloxOS{% endblock %}
+{% block page_title %}Podgląd logów{% endblock %}
+
+{% block content %}
+
+{% if demo_mode %}
+<div class="alert alert-success" style="border-color:rgba(217,119,6,0.4);
+     background:rgba(217,119,6,0.08); color:#d97706; margin-bottom:16px;">
+  ⚠ Tryb demo – logi są <strong>symulowane</strong>. Live tail generuje nowe wpisy co kilka sekund.
+</div>
+{% endif %}
+
+<!-- Log selector tabs -->
+<div style="display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;">
+  {% for name in log_files %}
+  <a href="?log={{ name }}"
+     class="btn {% if name == log_name %}btn-primary{% else %}btn-ghost{% endif %} btn-sm">
+    {% if name == 'watchdog' %}🛡 Watchdog
+    {% elif name == 'ota' %}🔄 OTA Updater
+    {% elif name == 'setup' %}⚙ Setup
+    {% elif name == 'session' %}⏱ Sesja
+    {% else %}{{ name }}{% endif %}
+  </a>
+  {% endfor %}
+
+  <button class="btn btn-ghost btn-sm" onclick="toggleLive()" id="live-btn"
+          style="margin-left:auto;">
+    ▶ Live tail
+  </button>
+  <button class="btn btn-ghost btn-sm" onclick="scrollToBottom()">↓ Na dół</button>
+</div>
+
+<!-- Log viewer -->
+<div class="card" style="padding:0;">
+  <div style="padding:14px 20px; border-bottom:1px solid var(--border);
+              display:flex; align-items:center; justify-content:space-between;">
+    <span style="font-size:13px; font-weight:600;">
+      {% if demo_mode %}
+        [DEMO] robloxos-{{ log_name }}.log
+      {% else %}
+        /var/log/robloxos-{{ log_name }}.log
+      {% endif %}
+    </span>
+    <span style="font-size:12px; color:var(--text-dim);">
+      {{ lines | length }} linii (ostatnie 200)
+    </span>
+  </div>
+  <div class="log-container" id="log-box">
+    {% if lines %}
+      {% for line in lines %}
+      <div class="log-line">{{ line }}</div>
+      {% endfor %}
+    {% else %}
+      <div style="color:var(--text-dim); padding:8px 0;">(Brak danych w tym logu)</div>
+    {% endif %}
+  </div>
+</div>
+
+<div id="live-indicator" style="display:none; margin-top:12px;
+     font-size:13px; color:var(--green);">
+  <span class="dot dot-green"></span> Live tail aktywny – nowe wpisy pojawiają się automatycznie
+  {% if demo_mode %}<span style="color:var(--text-dim);"> (symulowane)</span>{% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let liveSource = null;
+let isLive     = false;
+
+function colorLine(div, text) {
+  const t = text.toLowerCase();
+  if (t.includes('[error]') || t.includes('kill') || t.includes('błąd'))
+    div.classList.add('log-line-error');
+  else if (t.includes('[warning]') || t.includes('[warn]') || t.includes('alert'))
+    div.classList.add('log-line-warn');
+  else if (t.includes('[ok]') || t.includes('pomyślnie') || t.includes('success') || t.includes('start'))
+    div.classList.add('log-line-ok');
+}
+
+function scrollToBottom() {
+  const box = document.getElementById('log-box');
+  box.scrollTop = box.scrollHeight;
+}
+
+function toggleLive() { isLive ? stopLive() : startLive(); }
+
+function startLive() {
+  const box     = document.getElementById('log-box');
+  const logName = '{{ log_name }}';
+  liveSource = new EventSource(`/api/logs/stream?log=${logName}`);
+
+  liveSource.onmessage = function(e) {
+    const line = JSON.parse(e.data);
+    const div  = document.createElement('div');
+    div.className   = 'log-line';
+    div.textContent = line;
+    colorLine(div, line);
+    box.appendChild(div);
+    while (box.children.length > 500) box.removeChild(box.firstChild);
+    scrollToBottom();
+  };
+
+  liveSource.onerror = function() { stopLive(); };
+  isLive = true;
+  document.getElementById('live-btn').textContent = '⏹ Stop live';
+  document.getElementById('live-btn').className   = 'btn btn-danger btn-sm';
+  document.getElementById('live-indicator').style.display = 'block';
+}
+
+function stopLive() {
+  if (liveSource) { liveSource.close(); liveSource = null; }
+  isLive = false;
+  document.getElementById('live-btn').textContent = '▶ Live tail';
+  document.getElementById('live-btn').className   = 'btn btn-ghost btn-sm';
+  document.getElementById('live-indicator').style.display = 'none';
+}
+
+// Color existing lines on load
+document.querySelectorAll('.log-line').forEach(el => colorLine(el, el.textContent));
+scrollToBottom();
+</script>
+{% endblock %}

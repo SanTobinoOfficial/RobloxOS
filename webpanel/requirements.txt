@@ -1,0 +1,4 @@
+flask>=3.0
+bcrypt>=4.1
+psutil>=5.9
+flask-socketio>=5.3

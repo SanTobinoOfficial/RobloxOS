@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RobloxOS – Logowanie</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; background: #0a0a0a; color: #e0e0e0;
+      font-family: "Ubuntu", system-ui, sans-serif;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .card {
+      background: #141414; border: 1px solid #2a2a2a; border-radius: 16px;
+      padding: 48px 44px; width: 100%; max-width: 400px;
+      box-shadow: 0 0 60px rgba(0,0,0,0.6);
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:none } }
+    .logo { font-size: 22px; font-weight: 700; color: #e53935;
+            letter-spacing: 3px; text-align: center; margin-bottom: 4px; }
+    .subtitle { text-align: center; font-size: 13px; color: #666; margin-bottom: 28px; }
+    label { display: block; font-size: 13px; color: #888; margin-bottom: 6px; }
+    input[type="password"] {
+      width: 100%; background: #0a0a0a; border: 1px solid #2a2a2a;
+      color: #e0e0e0; border-radius: 10px; padding: 12px 16px;
+      font-size: 15px; font-family: inherit; margin-bottom: 20px;
+      transition: border-color 0.15s;
+    }
+    input[type="password"]:focus { outline: none; border-color: #1e88e5; }
+    button {
+      width: 100%; background: #1e88e5; color: #fff; border: none;
+      border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: background 0.15s;
+    }
+    button:hover { background: #1565c0; }
+    .error {
+      background: rgba(229,57,53,0.1); border: 1px solid rgba(229,57,53,0.3);
+      color: #e53935; border-radius: 8px; padding: 10px 14px;
+      font-size: 13px; margin-bottom: 16px; text-align: center;
+    }
+    .first-run {
+      background: rgba(217,119,6,0.12); border: 1px solid rgba(217,119,6,0.4);
+      color: #d97706; border-radius: 8px; padding: 12px 14px;
+      font-size: 13px; margin-bottom: 20px; line-height: 1.6;
+    }
+    .first-run strong { color: #fbbf24; }
+    .footer { text-align: center; font-size: 11px; color: #333; margin-top: 28px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">RobloxOS</div>
+    <div class="subtitle">Panel administracyjny</div>
+
+    {% if first_run %}
+    <div class="first-run">
+      🚀 <strong>Pierwsze uruchomienie</strong><br>
+      Zaloguj się hasłem <strong>admin123</strong>, a następnie
+      natychmiast je zmień.
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <label for="password">Hasło administratora</label>
+      <input type="password" id="password" name="password"
+             placeholder="••••••••" autofocus autocomplete="current-password">
+      <button type="submit">Zaloguj się</button>
+    </form>
+
+    <div class="footer">RobloxOS v2.0 · Replit Edition</div>
+  </div>
+</body>
+</html>

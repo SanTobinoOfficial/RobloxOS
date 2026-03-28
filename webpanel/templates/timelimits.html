@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Limity czasu – RobloxOS{% endblock %}
+{% block page_title %}Limity czasu i harmonogram{% endblock %}
+
+{% block content %}
+
+{% if msg %}
+<div class="alert {% if 'Błąd' in msg %}alert-error{% else %}alert-success{% endif %}">
+  {{ msg }}
+</div>
+{% endif %}
+
+{% if demo_mode %}
+<div class="alert alert-success" style="border-color:rgba(217,119,6,0.4);
+     background:rgba(217,119,6,0.08); color:#d97706;">
+  ⚠ Tryb demo – limity są zapisywane do <code>data/config.json</code> i będą
+  aktywne po podłączeniu prawdziwej maszyny RobloxOS.
+</div>
+{% endif %}
+
+<form method="POST">
+<div class="grid grid-2">
+
+  <!-- Time limits -->
+  <div class="card">
+    <div class="card-title">Dzienny limit gry (minuty)</div>
+
+    {% set apps = [
+      ('roblox',  '🎮', 'Roblox',        '#e53935'),
+      ('discord', '🎧', 'Discord',        '#5865f2'),
+      ('browser', '🌐', 'Przeglądarka',   '#1e88e5'),
+    ] %}
+
+    {% for key, icon, label, color in apps %}
+    <div style="margin-bottom:24px;">
+      <label style="display:flex; align-items:center; gap:8px; font-size:15px;
+                    font-weight:600; color:var(--text); margin-bottom:12px;">
+        <span>{{ icon }}</span> {{ label }}
+      </label>
+      <div class="range-row">
+        <input type="range" name="{{ key }}" id="range_{{ key }}"
+               min="0" max="480" step="15"
+               value="{{ cfg.time_limits.get(key, 60) }}"
+               oninput="updateVal('{{ key }}', this.value)"
+               style="accent-color:{{ color }};">
+        <div class="range-val" id="val_{{ key }}">
+          {{ cfg.time_limits.get(key, 60) }}min
+        </div>
+      </div>
+      <div style="display:flex; justify-content:space-between;
+                  font-size:11px; color:var(--text-dim); margin-top:4px;">
+        <span>Bez limitu (0)</span>
+        <span>8 godzin</span>
+      </div>
+      {% if cfg.time_limits.get(key, 0) == 0 %}
+      <div style="font-size:12px; color:var(--text-dim); margin-top:6px;">
+        ∞ Bez limitu – ustaw wartość > 0 aby włączyć
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Schedule -->
+  <div class="card">
+    <div class="card-title">Harmonogram dostępu</div>
+
+    <div class="checkbox-row" style="margin-bottom:20px;">
+      <input type="checkbox" id="sched_enabled" name="sched_enabled"
+             {% if cfg.schedule.get('enabled') %}checked{% endif %}>
+      <label for="sched_enabled" style="font-size:14px; color:var(--text); cursor:pointer;">
+        Włącz harmonogram dostępu
+      </label>
+    </div>
+
+    <div id="sched-fields"
+         style="{% if not cfg.schedule.get('enabled') %}opacity:0.4; pointer-events:none;{% endif %}">
+
+      <div class="form-group">
+        <label>Dozwolone dni tygodnia</label>
+        {# Jinja2 nie ma enumerate() – używamy loop.index0 #}
+        {% set day_names = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd'] %}
+        <div class="days-grid">
+          {% for name in day_names %}
+          <label class="day-chip">
+            <input type="checkbox" name="days" value="{{ loop.index0 }}"
+                   {% if loop.index0 in cfg.schedule.get('days', range(7)) %}checked{% endif %}>
+            {{ name }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="grid grid-2" style="margin-top:16px;">
+        <div class="form-group">
+          <label for="start_time">Godzina startu</label>
+          <input type="time" id="start_time" name="start_time"
+                 value="{{ cfg.schedule.get('start', '15:00') }}">
+        </div>
+        <div class="form-group">
+          <label for="end_time">Godzina końca</label>
+          <input type="time" id="end_time" name="end_time"
+                 value="{{ cfg.schedule.get('end', '21:00') }}">
+        </div>
+      </div>
+
+      <div style="background:var(--surface2); border-radius:8px; padding:12px;
+                  font-size:13px; color:var(--text-dim); margin-top:8px;">
+        Poza harmonogramem launcher blokuje uruchomienie aplikacji.<br>
+        Dziecko widzi komunikat o braku dostępu.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="display:flex; gap:12px;">
+  <button type="submit" class="btn btn-primary">💾 Zapisz ustawienia</button>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Anuluj</a>
+</div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateVal(key, val) {
+  const el = document.getElementById('val_' + key);
+  val = parseInt(val);
+  if (val === 0) {
+    el.textContent = '∞';
+    el.style.color = 'var(--text-dim)';
+  } else {
+    const h = Math.floor(val / 60);
+    const m = val % 60;
+    el.textContent = h > 0 ? `${h}h ${m}min` : `${m}min`;
+    el.style.color = 'var(--text)';
+  }
+}
+
+// Sync range display on load
+['roblox','discord','browser'].forEach(k => {
+  const el = document.getElementById('range_' + k);
+  if (el) updateVal(k, el.value);
+});
+
+// Toggle schedule fields
+document.getElementById('sched_enabled').addEventListener('change', function() {
+  const fields = document.getElementById('sched-fields');
+  fields.style.opacity      = this.checked ? '1'    : '0.4';
+  fields.style.pointerEvents = this.checked ? ''    : 'none';
+});
+</script>
+{% endblock %}

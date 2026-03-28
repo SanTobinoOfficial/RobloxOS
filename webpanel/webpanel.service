@@ -1,0 +1,47 @@
+# /etc/systemd/system/robloxos-webpanel.service
+# RobloxOS Web Control Panel – systemd unit
+#
+# Instalacja:
+#   cp webpanel.service /etc/systemd/system/robloxos-webpanel.service
+#   systemctl daemon-reload
+#   systemctl enable --now robloxos-webpanel
+#
+# Pierwsze uruchomienie – ustaw hasło:
+#   sudo /opt/robloxos/webpanel/venv/bin/python3 /opt/robloxos/webpanel/app.py --set-password
+
+[Unit]
+Description=RobloxOS Web Control Panel
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/robloxos/webpanel
+
+ExecStart=/opt/robloxos/webpanel/venv/bin/python3 /opt/robloxos/webpanel/app.py \
+    --host 0.0.0.0 \
+    --port 8443
+
+Restart=always
+RestartSec=5s
+StartLimitIntervalSec=0
+
+Environment=PYTHONUNBUFFERED=1
+Environment=FLASK_ENV=production
+
+# Bezpieczeństwo
+PrivateTmp=yes
+ProtectHostname=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+NoNewPrivileges=no    # root potrzebuje uprawnień do systemctl/shutdown
+ReadWritePaths=/etc/robloxos /var/lib/robloxos /var/log /home/robloxuser/browser
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

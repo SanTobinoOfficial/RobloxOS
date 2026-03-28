@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}RobloxOS Panel{% endblock %}</title>
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0a0a0a;
+      --surface:    #141414;
+      --surface2:   #1e1e1e;
+      --border:     #2a2a2a;
+      --accent:     #e53935;
+      --accent2:    #1e88e5;
+      --accent3:    #5865f2;
+      --green:      #4caf50;
+      --yellow:     #f59e0b;
+      --text:       #e0e0e0;
+      --text-dim:   #888888;
+      --radius:     10px;
+      --sidebar-w:  220px;
+      --demo-h:     40px;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text);
+                 font-family: "Ubuntu", "Segoe UI", system-ui, sans-serif; }
+
+    /* ── Demo banner ── */
+    .demo-banner {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+      height: var(--demo-h);
+      background: linear-gradient(90deg, #b45309, #d97706, #b45309);
+      background-size: 200% 100%; animation: shimmer 3s linear infinite;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #000; letter-spacing: 1px;
+      gap: 10px;
+    }
+    .demo-banner.real {
+      background: linear-gradient(90deg, #1a5c20, #2e7d32, #1a5c20);
+      color: #a5d6a7;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    body.has-banner .layout { padding-top: var(--demo-h); }
+    body.has-banner .sidebar { top: var(--demo-h); height: calc(100vh - var(--demo-h)); }
+    body.has-banner .topbar { top: var(--demo-h); }
+
+    /* ── Layout ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w); background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+    }
+    .sidebar-logo {
+      padding: 24px 20px 16px;
+      font-size: 18px; font-weight: 700; color: var(--accent);
+      letter-spacing: 2px; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo span { color: var(--text-dim); font-size: 11px;
+                         display: block; letter-spacing: 1px; margin-top: 2px; }
+    .nav { flex: 1; padding: 12px 0; }
+    .nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 20px; color: var(--text-dim);
+      text-decoration: none; font-size: 14px; font-weight: 500;
+      transition: all 0.15s; border-left: 3px solid transparent;
+    }
+    .nav a:hover   { background: var(--surface2); color: var(--text); }
+    .nav a.active  { background: var(--surface2); color: var(--text);
+                     border-left-color: var(--accent); }
+    .nav .icon { font-size: 16px; width: 20px; text-align: center; }
+    .sidebar-footer {
+      padding: 16px 20px; border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--text-dim);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .sidebar-footer a { color: var(--text-dim); text-decoration: none; }
+    .sidebar-footer a:hover { color: var(--text); }
+    .sidebar-footer a.logout { color: var(--accent); }
+
+    /* ── Main content ── */
+    .main { margin-left: var(--sidebar-w); flex: 1; display: flex;
+            flex-direction: column; min-height: 100vh; }
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 32px; height: 56px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-title { font-size: 16px; font-weight: 600; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    }
+    .badge-green  { background: rgba(76,175,80,0.15);  color: var(--green); }
+    .badge-red    { background: rgba(229,57,53,0.15);  color: var(--accent); }
+    .badge-yellow { background: rgba(245,158,11,0.15); color: var(--yellow); }
+    .badge-blue   { background: rgba(30,136,229,0.15); color: var(--accent2); }
+    .badge-orange { background: rgba(217,119,6,0.15);  color: #d97706; }
+
+    .content { padding: 32px; flex: 1; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 14px; font-weight: 700; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
+    }
+
+    /* ── Grid ── */
+    .grid { display: grid; gap: 20px; }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+    /* ── Stat card ── */
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .stat-label { font-size: 11px; color: var(--text-dim);
+                  text-transform: uppercase; letter-spacing: 1px; }
+    .stat-value { font-size: 28px; font-weight: 700; margin: 4px 0; }
+    .stat-sub   { font-size: 12px; color: var(--text-dim); }
+
+    /* ── Progress bar ── */
+    .progress { background: var(--border); border-radius: 4px;
+                height: 6px; overflow: hidden; margin-top: 8px; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .fill-green  { background: var(--green); }
+    .fill-yellow { background: var(--yellow); }
+    .fill-red    { background: var(--accent); }
+
+    /* ── Forms ── */
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: 13px; color: var(--text-dim);
+      margin-bottom: 6px; font-weight: 500;
+    }
+    input[type="text"], input[type="number"], input[type="time"],
+    input[type="password"], select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: var(--radius); padding: 10px 14px;
+      font-size: 14px; font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus {
+      outline: none; border-color: var(--accent2);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 20px; border: none; border-radius: var(--radius);
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: all 0.15s; text-decoration: none;
+    }
+    .btn-primary  { background: var(--accent2); color: #fff; }
+    .btn-danger   { background: var(--accent);  color: #fff; }
+    .btn-success  { background: var(--green);   color: #fff; }
+    .btn-ghost    { background: var(--surface2); color: var(--text);
+                    border: 1px solid var(--border); }
+    .btn:hover    { filter: brightness(1.15); }
+    .btn:active   { filter: brightness(0.9); }
+    .btn-sm       { padding: 6px 14px; font-size: 12px; }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+         letter-spacing: 1px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+
+    /* ── Alert ── */
+    .alert { padding: 12px 16px; border-radius: var(--radius);
+             font-size: 14px; margin-bottom: 20px; }
+    .alert-success { background: rgba(76,175,80,0.1);
+                     border: 1px solid rgba(76,175,80,0.3); color: var(--green); }
+    .alert-error   { background: rgba(229,57,53,0.1);
+                     border: 1px solid rgba(229,57,53,0.3); color: var(--accent); }
+
+    /* ── Service status dot ── */
+    .dot { display: inline-block; width: 8px; height: 8px;
+           border-radius: 50%; margin-right: 6px; }
+    .dot-green  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dot-red    { background: var(--accent); }
+    .dot-yellow { background: var(--yellow); }
+
+    /* ── Log viewer ── */
+    .log-container {
+      background: #060606; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+      font-family: "Ubuntu Mono", monospace; font-size: 12px;
+      max-height: 500px; overflow-y: auto; color: #a0a0a0;
+      line-height: 1.6;
+    }
+    .log-line-warn  { color: var(--yellow); }
+    .log-line-error { color: var(--accent); }
+    .log-line-ok    { color: var(--green); }
+
+    /* ── Checkbox ── */
+    .checkbox-row { display: flex; align-items: center; gap: 8px;
+                    margin-bottom: 10px; }
+    .checkbox-row input[type="checkbox"] { width: auto; }
+    .days-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+    .day-chip {
+      padding: 6px 14px; border-radius: 20px; cursor: pointer;
+      border: 1px solid var(--border); font-size: 13px;
+      background: var(--bg); color: var(--text-dim);
+      transition: all 0.15s;
+    }
+    .day-chip input { display: none; }
+    .day-chip:has(input:checked) {
+      background: rgba(30,136,229,0.15); border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    /* ── Range slider ── */
+    .range-row { display: flex; align-items: center; gap: 12px; }
+    input[type="range"] {
+      flex: 1; accent-color: var(--accent2);
+      background: var(--border); border: none; padding: 0;
+    }
+    .range-val { min-width: 52px; text-align: right;
+                 font-size: 14px; font-weight: 700; color: var(--text); }
+
+    /* ── Responsive ── */
+    @media (max-width: 1100px) { .grid-4 { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      .content { padding: 16px; }
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body{% if demo_mode or real_mode %} class="has-banner"{% endif %}>
+
+{% if demo_mode %}
+<div class="demo-banner">
+  ⚠ TRYB DEMO – dane są symulowane &nbsp;·&nbsp;
+  Whitelist i limity czasu zapisują się naprawdę do <code>data/config.json</code> &nbsp;·&nbsp;
+  <a href="/api/token" target="_blank" style="color:#000; text-decoration:underline;">Podłącz prawdziwą maszynę →</a>
+</div>
+{% elif real_mode %}
+<div class="demo-banner real">
+  <span class="dot dot-green"></span>
+  POŁĄCZONO Z MASZYNĄ ROBLOXOS – dane na żywo
+</div>
+{% endif %}
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      RobloxOS
+      <span>Admin Panel v2.0{% if demo_mode %} · DEMO{% endif %}</span>
+    </div>
+    <div class="nav">
+      <a href="{{ url_for('dashboard') }}"
+         class="{{ 'active' if request.endpoint == 'dashboard' }}">
+        <span class="icon">📊</span> Dashboard
+      </a>
+      <a href="{{ url_for('whitelist_page') }}"
+         class="{{ 'active' if request.endpoint == 'whitelist_page' }}">
+        <span class="icon">🌐</span> Whitelist
+      </a>
+      <a href="{{ url_for('timelimits_page') }}"
+         class="{{ 'active' if request.endpoint == 'timelimits_page' }}">
+        <span class="icon">⏱</span> Limity czasu
+      </a>
+      <a href="{{ url_for('logs_page') }}"
+         class="{{ 'active' if request.endpoint == 'logs_page' }}">
+        <span class="icon">📋</span> Logi
+      </a>
+    </div>
+    <div class="sidebar-footer">
+      <a href="{{ url_for('change_password_page') }}">🔑 Zmień hasło</a>
+      <a href="{{ url_for('logout') }}" class="logout">↩ Wyloguj się</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">{% block page_title %}RobloxOS{% endblock %}</div>
+      <div class="topbar-right">
+        <span id="active-app-badge"></span>
+        {% if demo_mode %}<span class="badge badge-orange">DEMO</span>{% endif %}
+        {% if real_mode %}<span class="badge badge-green">● LIVE</span>{% endif %}
+        <span class="badge badge-blue">Admin</span>
+      </div>
+    </div>
+    <div class="content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Active app badge
+(function() {
+  function refresh() {
+    fetch('/api/active-app')
+      .then(r => r.json())
+      .then(d => {
+        const badge = document.getElementById('active-app-badge');
+        const icons = {roblox: '🎮', discord: '🎧', browser: '🌐'};
+        if (d.app) {
+          badge.className = 'badge badge-green';
+          badge.textContent = (icons[d.app] || '') + ' ' + d.app + ' aktywny';
+        } else {
+          badge.className = 'badge badge-yellow';
+          badge.textContent = '⏸ Brak aktywnej aplikacji';
+        }
+      }).catch(() => {});
+  }
+  refresh();
+  setInterval(refresh, 10000);
+})();
+
+// Log line coloring
+document.querySelectorAll('.log-line').forEach(el => {
+  const t = el.textContent.toLowerCase();
+  if (t.includes('[error]') || t.includes('kill') || t.includes('błąd'))
+    el.classList.add('log-line-error');
+  else if (t.includes('[warning]') || t.includes('[warn]') || t.includes('alert'))
+    el.classList.add('log-line-warn');
+  else if (t.includes('[ok]') || t.includes('pomyślnie') || t.includes('success'))
+    el.classList.add('log-line-ok');
+});
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

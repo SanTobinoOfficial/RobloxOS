@@ -1,0 +1,19 @@
+# /etc/systemd/system/robloxos-ota.service
+# Uruchamiany przez robloxos-ota.timer (nie bezpośrednio)
+
+[Unit]
+Description=RobloxOS OTA Updater – jednorazowy run
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/bin/python3 /opt/robloxos/updater/ota_updater.py run
+StandardOutput=append:/var/log/robloxos-ota.log
+StandardError=append:/var/log/robloxos-ota.log
+Environment=PYTHONUNBUFFERED=1
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/robloxos /var/lib/robloxos /var/log /home/robloxuser

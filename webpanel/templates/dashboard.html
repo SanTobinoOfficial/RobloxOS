@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – RobloxOS{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Stats grid -->
+<div class="grid grid-4" style="margin-bottom:24px;">
+
+  <div class="stat-card">
+    <div class="stat-label">CPU</div>
+    <div class="stat-value" style="color:{% if status.cpu_pct > 80 %}#e53935{% elif status.cpu_pct > 50 %}#f59e0b{% else %}#4caf50{% endif %}">
+      {{ status.cpu_pct | int }}%
+    </div>
+    <div class="progress">
+      <div class="progress-fill {% if status.cpu_pct > 80 %}fill-red{% elif status.cpu_pct > 50 %}fill-yellow{% else %}fill-green{% endif %}"
+           style="width:{{ status.cpu_pct }}%"></div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">RAM</div>
+    <div class="stat-value" style="color:{% if status.ram_pct > 85 %}#e53935{% elif status.ram_pct > 60 %}#f59e0b{% else %}#4caf50{% endif %}">
+      {{ status.ram_pct | int }}%
+    </div>
+    <div class="stat-sub">{{ status.ram_used }} / {{ status.ram_total }}</div>
+    <div class="progress">
+      <div class="progress-fill {% if status.ram_pct > 85 %}fill-red{% elif status.ram_pct > 60 %}fill-yellow{% else %}fill-green{% endif %}"
+           style="width:{{ status.ram_pct }}%"></div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Dysk</div>
+    <div class="stat-value">{{ status.disk_pct | int }}%</div>
+    <div class="stat-sub">Wolne: {{ status.disk_free }}</div>
+    <div class="progress">
+      <div class="progress-fill {% if status.disk_pct > 90 %}fill-red{% elif status.disk_pct > 70 %}fill-yellow{% else %}fill-green{% endif %}"
+           style="width:{{ status.disk_pct }}%"></div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Uptime</div>
+    <div class="stat-value" style="font-size:22px; padding-top:6px;">{{ status.uptime }}</div>
+    <div class="stat-sub">Sesja: {{ status.session_date }}</div>
+  </div>
+
+</div>
+
+<!-- FPS / Ping row (widoczne gdy dostępne) -->
+{% if status.fps or status.ping_ms %}
+<div class="grid grid-2" style="margin-bottom:24px;">
+
+  <div class="stat-card" style="display:flex; align-items:center; gap:20px;">
+    <span style="font-size:36px;">🎮</span>
+    <div>
+      <div class="stat-label">FPS (Roblox)</div>
+      <div class="stat-value" id="fps-val"
+           style="color:{% if status.fps < 30 %}#e53935{% elif status.fps < 50 %}#f59e0b{% else %}#4caf50{% endif %}">
+        {{ status.fps }}
+      </div>
+      {% if demo_mode %}<div class="stat-sub">symulowane</div>{% endif %}
+    </div>
+  </div>
+
+  <div class="stat-card" style="display:flex; align-items:center; gap:20px;">
+    <span style="font-size:36px;">📡</span>
+    <div>
+      <div class="stat-label">Ping</div>
+      <div class="stat-value" id="ping-val"
+           style="color:{% if status.ping_ms > 80 %}#e53935{% elif status.ping_ms > 50 %}#f59e0b{% else %}#4caf50{% endif %}">
+        {{ status.ping_ms }} <span style="font-size:14px; font-weight:400;">ms</span>
+      </div>
+      {% if demo_mode %}<div class="stat-sub">symulowane</div>{% endif %}
+    </div>
+  </div>
+
+</div>
+{% endif %}
+
+<!-- Session time usage -->
+<div class="card">
+  <div class="card-title">Czas sesji – dziś ({{ status.session_date }})</div>
+  <div class="grid grid-3">
+    {% set app_icons  = {'roblox': '🎮', 'discord': '🎧', 'browser': '🌐'} %}
+    {% set app_labels = {'roblox': 'Roblox', 'discord': 'Discord', 'browser': 'Przeglądarka'} %}
+    {% for app, data in status.sessions.items() %}
+    <div style="padding:16px; background:var(--surface2); border-radius:var(--radius);">
+      <div style="font-size:28px; margin-bottom:8px;">{{ app_icons[app] }}</div>
+      <div style="font-size:15px; font-weight:700; margin-bottom:4px;">{{ app_labels[app] }}</div>
+      <div style="font-size:13px; color:var(--text-dim); margin-bottom:10px;">
+        Użyte: <strong style="color:var(--text);">{{ data.used_str }}</strong>
+        / Limit: <strong>{{ data.limit_min }}min</strong>
+      </div>
+      {% if data.limit_min > 0 %}
+      <div class="progress">
+        <div class="progress-fill {% if data.pct >= 100 %}fill-red{% elif data.pct >= 75 %}fill-yellow{% else %}fill-green{% endif %}"
+             style="width:{{ [data.pct, 100] | min }}%"></div>
+      </div>
+      <div style="font-size:11px; color:var(--text-dim); margin-top:6px;">
+        {% if data.remaining is not none %}
+          {% if data.remaining <= 0 %}
+            <span style="color:#e53935; font-weight:700;">⛔ Limit wyczerpany</span>
+          {% else %}
+            Pozostało: {{ data.remaining // 60 }}min
+          {% endif %}
+        {% endif %}
+      </div>
+      {% else %}
+        <div style="font-size:12px; color:var(--text-dim);">Bez limitu</div>
+      {% endif %}
+
+      <button class="btn btn-ghost btn-sm" style="margin-top:12px; width:100%;"
+              onclick="resetSession('{{ app }}')">
+        ↺ Reset licznika
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Services + Quick actions -->
+<div class="grid grid-2">
+
+  <!-- Services -->
+  <div class="card">
+    <div class="card-title">Status usług</div>
+    {% set svc_labels = {
+      'watchdog': 'Watchdog',
+      'lightdm':  'LightDM (sesja)',
+      'apparmor': 'AppArmor',
+      'webpanel': 'Web Panel'
+    } %}
+    <table>
+      <thead><tr><th>Usługa</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for svc, st in status.services.items() %}
+      <tr>
+        <td>{{ svc_labels.get(svc, svc) }}</td>
+        <td>
+          <span class="dot dot-{% if st == 'active' %}green{% elif st == 'inactive' %}yellow{% else %}red{% endif %}"></span>
+          {{ st }}
+        </td>
+        <td>
+          <button class="btn btn-ghost btn-sm"
+                  onclick="restartService('{{ svc if svc == 'lightdm' else 'robloxos-' + svc }}')">
+            ↺
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% if demo_mode %}
+    <div style="font-size:11px; color:var(--text-dim); margin-top:12px;">
+      ⚠ Tryb demo – przyciski restart są zasymulowane
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Quick actions -->
+  <div class="card">
+    <div class="card-title">Szybkie akcje</div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <button class="btn btn-ghost" onclick="restartLauncher()">
+        🔄 Restart launchera
+      </button>
+      <button class="btn btn-ghost"
+              onclick="if(confirm('Zrestartować system?')) apiPost('/api/system/restart')">
+        🔁 Restart systemu
+      </button>
+      <button class="btn btn-danger"
+              onclick="if(confirm('Wyłączyć system?')) apiPost('/api/system/shutdown')">
+        ⏻ Wyłącz system
+      </button>
+      <a href="{{ url_for('whitelist_page') }}" class="btn btn-ghost">
+        🌐 Zarządzaj whitelistą
+      </a>
+      <a href="{{ url_for('timelimits_page') }}" class="btn btn-ghost">
+        ⏱ Zmień limity czasu
+      </a>
+      {% if demo_mode %}
+      <a href="/api/token" target="_blank" class="btn btn-ghost"
+         style="border-color:#d97706; color:#d97706;">
+        🔑 Pokaż token API (podłącz maszynę)
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Active app info -->
+{% if active %}
+<div class="card" style="border-color: #4caf50;">
+  <div class="card-title" style="color:#4caf50;">Aktywna aplikacja</div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span style="font-size:48px;">{{ {'roblox':'🎮','discord':'🎧','browser':'🌐'}.get(active,'❓') }}</span>
+    <div>
+      <div style="font-size:20px; font-weight:700;">
+        {{ {'roblox':'Roblox','discord':'Discord','browser':'Przeglądarka'}.get(active, active) }}
+      </div>
+      <div style="color:var(--text-dim); font-size:14px; margin-top:4px;">
+        Sesja aktywna · {{ status.sessions[active].used_str }} użyte
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div id="toast" style="
+  position:fixed; bottom:24px; right:24px; background:#1e1e1e;
+  border:1px solid #2a2a2a; border-radius:10px; padding:14px 20px;
+  font-size:14px; display:none; z-index:999; max-width:320px;
+"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showToast(msg, color='#4caf50') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.color = color;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3500);
+}
+
+function apiPost(url, body={}) {
+  return fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  }).then(r => r.json())
+    .then(d => { showToast(d.msg || d.error || 'OK', d.ok === false ? '#e53935' : '#4caf50'); })
+    .catch(() => showToast('Błąd połączenia', '#e53935'));
+}
+
+function resetSession(app) {
+  if (!confirm(`Zresetować licznik dla ${app}?`)) return;
+  apiPost('/api/session/reset', {app}).then(() => setTimeout(() => location.reload(), 1200));
+}
+
+function restartService(name) {
+  apiPost(`/api/service/${name}`, {action:'restart'});
+}
+
+function restartLauncher() {
+  apiPost('/api/launcher/restart');
+}
+
+// Auto-refresh co 15s – aktualizuje FPS/ping w trybie demo
+setInterval(() => {
+  fetch('/api/status').then(r => r.json()).then(d => {
+    document.title = `CPU ${(d.cpu_pct|0)}% · RAM ${(d.ram_pct|0)}% – RobloxOS`;
+    const fps  = document.getElementById('fps-val');
+    const ping = document.getElementById('ping-val');
+    if (fps && d.fps  !== undefined) fps.textContent  = d.fps;
+    if (ping && d.ping_ms !== undefined) ping.firstChild.textContent = d.ping_ms;
+  }).catch(() => {});
+}, 15000);
+</script>
+{% endblock %}

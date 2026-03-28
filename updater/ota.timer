@@ -1,0 +1,25 @@
+# /etc/systemd/system/robloxos-ota.timer
+# Uruchamia OTA updater codziennie o 03:00.
+#
+# Instalacja:
+#   cp ota.service ota.timer /etc/systemd/system/
+#   systemctl daemon-reload
+#   systemctl enable --now robloxos-ota.timer
+#
+# Sprawdź kiedy odpali się następny raz:
+#   systemctl list-timers robloxos-ota.timer
+
+[Unit]
+Description=RobloxOS OTA Updater – nocny timer
+Requires=robloxos-ota.service
+
+[Timer]
+# Odpala się codziennie o 03:00 (czas lokalny)
+OnCalendar=*-*-* 03:00:00
+# Losowe przesunięcie ±15 minut (żeby nie przeciążać GitHub API)
+RandomizedDelaySec=900
+# Jeśli system był wyłączony o 03:00 – odpal przy następnym starcie
+Persistent=true
+
+[Install]
+WantedBy=timers.target
